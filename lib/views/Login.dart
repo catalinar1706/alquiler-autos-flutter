@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:alquiler_autos/views/menuPrincipal.dart';
+import 'package:alquiler_autos/controller/cliente_clontroller.dart';
 import 'package:alquiler_autos/views/register.dart';
 
 class login extends StatefulWidget {
@@ -10,15 +11,43 @@ class login extends StatefulWidget {
 }
 
 class _loginState extends State<login> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final TextEditingController _correoController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final ClienteService clienteService = ClienteService();
+
+  void iniciarSesion() async {
+    final correo = _correoController.text;
+    final password = _passwordController.text;
+
+    final result = await clienteService.loginCliente(correo, password);
+
+    if (result['success'] && result.containsKey('cliente')) {
+      final clienteId = result['cliente']?['id'];
+
+      // Verificar que el usuario tenga datos validos antes de iniciar sesion
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Inicio de sesión exitoso')));
+
+      Future.delayed(const Duration(seconds: 1), () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => Menuprincipal(clienteId: clienteId)),
+        );
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(result['message'] ?? 'Credenciales incorrectas')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 245, 237, 247),
       body: SingleChildScrollView(
         child: Padding(
-            padding: const EdgeInsets.only(top: 100, left: 20, right: 20 ),
+            padding: const EdgeInsets.only(top: 100, left: 20, right: 20),
             child: Column(
               // mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -40,7 +69,7 @@ class _loginState extends State<login> {
                 ),
                 const SizedBox(height: 24.0),
                 TextField(
-                  controller: _emailController,
+                  controller: _correoController,
                   obscureText: true, // Para ocultar el texto
                   style: const TextStyle(
                     color: Colors.pink, // Color del texto
@@ -127,16 +156,10 @@ class _loginState extends State<login> {
                 const SizedBox(height: 24.0),
                 ElevatedButton(
                     onPressed: () {
-                      // print("email: ${_emailController.text} ");
-                      // print("password: ${_passwordController.text} ");
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const Menuprincipal()));
+                      iniciarSesion();
                     },
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.purple),
-                        
                     child: const Text(
                       "Iniciar sesion",
                       style: TextStyle(color: Colors.white, fontSize: 20),
@@ -149,7 +172,10 @@ class _loginState extends State<login> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("¿Olvidaste tu contraseña?", style: TextStyle(fontSize: 16),),
+                        const Text(
+                          "¿Olvidaste tu contraseña?",
+                          style: TextStyle(fontSize: 16),
+                        ),
                         const SizedBox(
                           width: 10,
                         ),
@@ -163,7 +189,9 @@ class _loginState extends State<login> {
                           child: (const Text(
                             "Recuperar",
                             style: TextStyle(
-                                color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 18),
+                                color: Colors.purple,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18),
                           )),
                         ),
                       ],
@@ -174,7 +202,10 @@ class _loginState extends State<login> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("¿No tienes una cuenta?", style: TextStyle(fontSize: 16),),
+                        const Text(
+                          "¿No tienes una cuenta?",
+                          style: TextStyle(fontSize: 16),
+                        ),
                         const SizedBox(
                           width: 10,
                         ),
@@ -183,12 +214,14 @@ class _loginState extends State<login> {
                             Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => register()));
+                                    builder: (context) => const register()));
                           },
                           child: (const Text(
                             "Registrate",
                             style: TextStyle(
-                                color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 18),
+                                color: Colors.purple,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18),
                           )),
                         )
                       ],

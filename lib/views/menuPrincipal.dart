@@ -1,14 +1,55 @@
 import 'package:alquiler_autos/views/detallesVehiculo.dart';
+import 'package:alquiler_autos/controller/autos_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:async/async.dart';
 
 class Menuprincipal extends StatefulWidget {
-  const Menuprincipal({super.key});
+  final int clienteId;
+  Menuprincipal({required this.clienteId});
 
   @override
   State<Menuprincipal> createState() => _MenuprincipalState();
 }
 
 class _MenuprincipalState extends State<Menuprincipal> {
+  final AutosController autosController = AutosController();
+  List<Map<String, dynamic>> listaDeAutos = [];
+  bool isLoading = true;
+  CancelableOperation? _autosOperation; // Operación cancelable
+
+  @override
+  void initState() {
+    super.initState();
+    cargarAutos();
+  }
+
+  @override
+  void dispose() {
+    _autosOperation?.cancel(); // Cancela la operación al descartar el widget
+    super.dispose();
+  }
+
+  void cargarAutos() async {
+    try {
+      final autos = await autosController.obtenerAutosDisponibles();
+      if (mounted) {
+        // Verificar si el widget está montado
+        setState(() {
+          listaDeAutos = autos;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        // Verificar si el widget está montado
+        setState(() {
+          isLoading = false;
+        });
+      }
+      print('Error al cargar autos: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,7 +129,7 @@ class _MenuprincipalState extends State<Menuprincipal> {
           ],
         ),
       ),
-      body: ListView(
+      body: Column(
         children: [
           const SizedBox(
             height: 16,
@@ -120,255 +161,84 @@ class _MenuprincipalState extends State<Menuprincipal> {
               ),
             ),
           ),
-          Card(
-            color: Colors.purple[100],
-            child: ListTile(
-              title: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Toyota Corolla",
-                    style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                  SizedBox(
-                      height: 5), // Espacio entre el título y la descripción
-                  Row(
-                    children: [
-                      Text(
-                        "Año 2022 -",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14, // Estilo para la descripción
-                        ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : listaDeAutos.isEmpty
+                    ? const Center(child: Text('No hay autos disponibles'))
+                    : ListView.builder(
+                        itemCount: listaDeAutos.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Card(
+                            color: Colors.purple[100],
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            child: ListTile(
+                              title: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${listaDeAutos[index]['marca']} ${listaDeAutos[index]['modelo']}',
+                                    style: const TextStyle(
+                                      color: Colors.purple,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Año ${listaDeAutos[index]['anio']} -',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${listaDeAutos[index]['precio']}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              leading: Image.network(
+                                listaDeAutos[index][
+                                    'imageUrl'], // Usa la URL de la imagen del auto
+                                width: 60,
+                                height: 30,
+                                fit: BoxFit.contain,
+                              ),
+                              trailing: const Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.white,
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DetalleVehiculoScreen(
+                                      clienteId: widget.clienteId,
+                                      imageUrl: listaDeAutos[index]['imageUrl'],
+                                      marca: listaDeAutos[index]['marca'],
+                                      modelo: listaDeAutos[index]['modelo'],
+                                      anio: listaDeAutos[index]['anio'],
+                                      disponibilidad: listaDeAutos[index]
+                                          ['disponibilidad'],
+                                      autoId: listaDeAutos[index]['id'],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
                       ),
-                      Text(
-                        " \$99.99/día",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              leading: Image.network(
-                "https://pepeganga.vtexassets.com/arquivos/ids/689422/100443876-1.png?v=637783840263800000",
-                width: 70, // Tamaño de la imagen
-                height: 70,
-                fit: BoxFit.cover, // Ajusta la imagen a un cuadrado
-              ),
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white, // Color del ícono
-              ),
-              onTap: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => const Detallesvehiculo()));
-              },
-            ),
-          ),
-          Card(
-            color: Colors.purple[100],
-            child: ListTile(
-              title: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Toyota Corolla",
-                    style: TextStyle(color: Colors.purple,fontWeight: FontWeight.bold,  fontSize: 20),
-                  ),
-                  SizedBox(
-                      height: 5), // Espacio entre el título y la descripción
-                  Row(
-                    children: [
-                      Text(
-                        "Año 2022 -",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14, // Estilo para la descripción
-                        ),
-                      ),
-                      Text(
-                        " \$99.99/día",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              leading: Image.network(
-                "https://pepeganga.vtexassets.com/arquivos/ids/689422/100443876-1.png?v=637783840263800000",
-                width: 70, // Tamaño de la imagen
-                height: 70,
-                fit: BoxFit.cover, // Ajusta la imagen a un cuadrado
-              ),
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white, // Color del ícono
-              ),
-              onTap: () {
-                 Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => const Detallesvehiculo()));
-              },
-            ),
-          ),
-          Card(
-            color: Colors.purple[100],
-            child: ListTile(
-              title: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Toyota Corolla",
-                    style: TextStyle(color: Colors.purple,fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                  SizedBox(
-                      height: 5), // Espacio entre el título y la descripción
-                  Row(
-                    children: [
-                      Text(
-                        "Año 2022 -",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14, // Estilo para la descripción
-                        ),
-                      ),
-                      Text(
-                        " \$99.99/día",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              leading: Image.network(
-                "https://pepeganga.vtexassets.com/arquivos/ids/689422/100443876-1.png?v=637783840263800000",
-                width: 70, // Tamaño de la imagen
-                height: 70,
-                fit: BoxFit.cover, // Ajusta la imagen a un cuadrado
-              ),
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white, // Color del ícono
-              ),
-              onTap: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => const Detallesvehiculo()));
-              },
-            ),
-          ),
-          Card(
-            color: Colors.purple[100],
-            child: ListTile(
-              title: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Toyota Corolla",
-                    style: TextStyle(color: Colors.purple,fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                  SizedBox(
-                      height: 5), // Espacio entre el título y la descripción
-                  Row(
-                    children: [
-                      Text(
-                        "Año 2022 -",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14, // Estilo para la descripción
-                        ),
-                      ),
-                      Text(
-                        " \$99.99/día",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              leading: Image.network(
-                "https://pepeganga.vtexassets.com/arquivos/ids/689422/100443876-1.png?v=637783840263800000",
-                width: 70, // Tamaño de la imagen
-                height: 70,
-                fit: BoxFit.cover, // Ajusta la imagen a un cuadrado
-              ),
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white, // Color del ícono
-              ),
-              onTap: () {
-                 Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => const Detallesvehiculo()));
-              },
-            ),
-          ),
-          Card(
-            color: Colors.purple[100],
-            child: ListTile(
-              title: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Toyota Corolla",
-                    style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                  SizedBox(
-                      height: 5), // Espacio entre el título y la descripción
-                  Row(
-                    children: [
-                      Text(
-                        "Año 2022 -",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14, // Estilo para la descripción
-                        ),
-                      ),
-                      Text(
-                        " \$99.99/día",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              leading: Image.network(
-                "https://pepeganga.vtexassets.com/arquivos/ids/689422/100443876-1.png?v=637783840263800000",
-                width: 70, // Tamaño de la imagen
-                height: 70,
-                fit: BoxFit.cover, // Ajusta la imagen a un cuadrado
-              ),
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white, // Color del ícono
-              ),
-              onTap: () {
-                 Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => const Detallesvehiculo()));
-              },
-            ),
           ),
         ],
       ),
